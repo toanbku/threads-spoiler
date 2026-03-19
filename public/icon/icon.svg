@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7C3AED"/>
+      <stop offset="100%" stop-color="#5B21B6"/>
+    </linearGradient>
+    <linearGradient id="eyeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#EDE9FE"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded square background -->
+  <rect x="4" y="4" width="120" height="120" rx="26" ry="26" fill="url(#bg)"/>
+
+  <!-- Eye shape (almond) -->
+  <path d="M24 64 C24 64 44 38 64 38 C84 38 104 64 104 64 C104 64 84 90 64 90 C44 90 24 64 24 64Z"
+        fill="url(#eyeGrad)" opacity="0.95"/>
+
+  <!-- Iris -->
+  <circle cx="64" cy="64" r="16" fill="#7C3AED"/>
+
+  <!-- Pupil -->
+  <circle cx="64" cy="64" r="8" fill="#1E1035"/>
+
+  <!-- Pupil highlight -->
+  <circle cx="60" cy="60" r="3.5" fill="#FFFFFF" opacity="0.85"/>
+
+  <!-- Sparkle top-right - 4-point star -->
+  <path d="M92 28 L94.5 34 L101 36.5 L94.5 39 L92 45 L89.5 39 L83 36.5 L89.5 34Z"
+        fill="#FDE68A"/>
+
+  <!-- Sparkle small top -->
+  <path d="M78 20 L79.5 23.5 L83 25 L79.5 26.5 L78 30 L76.5 26.5 L73 25 L76.5 23.5Z"
+        fill="#FDE68A" opacity="0.7"/>
+
+  <!-- Sparkle small right -->
+  <path d="M102 50 L103.2 53 L106 54 L103.2 55 L102 58 L100.8 55 L98 54 L100.8 53Z"
+        fill="#FDE68A" opacity="0.6"/>
+</svg>
