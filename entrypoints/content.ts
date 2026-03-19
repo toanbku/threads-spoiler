@@ -7,7 +7,6 @@ export default defineContentScript({
     const INDICATOR_KEY = 'threads-spoiler-indicator';
     const SPOILER_COUNT_KEY = 'threads-spoiler-count';
     let spoilerCount = 0;
-    const markedPosts = new Set<string>();
 
     async function isEnabled(): Promise<boolean> {
       const result = await browser.storage.local.get(STORAGE_KEY);
@@ -21,6 +20,21 @@ export default defineContentScript({
 
     function updateCount() {
       browser.storage.local.set({ [SPOILER_COUNT_KEY]: spoilerCount });
+    }
+
+    function applyHighlight(el: HTMLElement) {
+      el.classList.add('tsr-spoiler-highlight');
+      el.style.setProperty('background-color', 'rgba(250, 204, 21, 0.18)', 'important');
+      el.style.setProperty('border-bottom', '1.5px solid rgba(250, 204, 21, 0.5)', 'important');
+      el.style.setProperty('border-radius', '2px', 'important');
+      el.style.setProperty('padding', '1px 3px', 'important');
+    }
+
+    function removeHighlight(el: HTMLElement) {
+      el.classList.remove('tsr-spoiler-highlight');
+      el.style.removeProperty('border-bottom');
+      el.style.removeProperty('border-radius');
+      el.style.removeProperty('padding');
     }
 
     function isSpoilerButton(el: HTMLElement): boolean {
@@ -43,82 +57,32 @@ export default defineContentScript({
       return Math.abs(r - g) < 10 && Math.abs(g - b) < 10;
     }
 
-    /**
-     * Find the post container by walking up from a spoiler button.
-     * The post container is the div with padding and position:relative
-     * that contains a post link (a[href*="/post/"]).
-     */
-    function findPostContainer(el: HTMLElement): HTMLElement | null {
-      let current = el.parentElement;
-      for (let i = 0; i < 12 && current; i++) {
-        const cs = getComputedStyle(current);
-        if (
-          cs.position === 'relative' &&
-          cs.padding !== '0px' &&
-          current.querySelector('a[href*="/post/"]')
-        ) {
-          return current;
-        }
-        current = current.parentElement;
-      }
-      return null;
-    }
-
-    /**
-     * Get a unique ID for a post from its container.
-     */
-    function getPostId(container: HTMLElement): string | null {
-      const link = container.querySelector<HTMLAnchorElement>('a[href*="/post/"]');
-      return link?.getAttribute('href') || null;
-    }
-
-    /**
-     * Add a subtle post-level indicator: thin left border + small label.
-     * Only one per post, placed unobtrusively at the bottom.
-     */
-    async function addPostIndicator(container: HTMLElement) {
-      if (!(await isIndicatorEnabled())) return;
-      if (container.dataset.tsrIndicator === 'true') return;
-
-      container.dataset.tsrIndicator = 'true';
-      container.classList.add('tsr-post-spoiler');
-    }
-
-    function removePostIndicator(container: HTMLElement) {
-      container.classList.remove('tsr-post-spoiler');
-      delete container.dataset.tsrIndicator;
-    }
-
-    function revealSpoiler(spoilerButton: HTMLElement) {
+    async function revealSpoiler(spoilerButton: HTMLElement) {
       const innerDiv = spoilerButton.querySelector<HTMLElement>(':scope > div');
       if (!innerDiv) return;
 
       innerDiv.style.setProperty('opacity', '1', 'important');
-      spoilerButton.style.setProperty('background-color', 'transparent', 'important');
       spoilerButton.style.setProperty('cursor', 'default', 'important');
       spoilerButton.dataset.spoilerRevealed = 'true';
 
-      // Add post-level indicator (one per post)
-      const postContainer = findPostContainer(spoilerButton);
-      if (postContainer) {
-        const postId = getPostId(postContainer);
-        if (postId && !markedPosts.has(postId)) {
-          markedPosts.add(postId);
-          addPostIndicator(postContainer);
-        }
+      // Either highlight the spoiler text or make it transparent
+      if (await isIndicatorEnabled()) {
+        applyHighlight(spoilerButton);
+      } else {
+        spoilerButton.style.setProperty('background-color', 'transparent', 'important');
       }
 
       spoilerCount++;
       updateCount();
     }
 
-    function revealAllSpoilers() {
+    async function revealAllSpoilers() {
       const candidates = document.querySelectorAll<HTMLElement>(
         'div[role="button"]:not([data-spoiler-revealed="true"])'
       );
       for (const btn of candidates) {
         if (isSpoilerButton(btn)) {
-          revealSpoiler(btn);
+          await revealSpoiler(btn);
         }
       }
       revealBlurredMedia();
@@ -166,30 +130,27 @@ export default defineContentScript({
           if (innerDiv) innerDiv.style.removeProperty('opacity');
           el.style.removeProperty('background-color');
           el.style.removeProperty('cursor');
+          removeHighlight(el);
         } else {
           el.style.removeProperty('filter');
           el.style.removeProperty('backdrop-filter');
         }
         delete el.dataset.spoilerRevealed;
       }
-
-      // Remove all post indicators
-      const indicators = document.querySelectorAll<HTMLElement>('[data-tsr-indicator="true"]');
-      for (const el of indicators) {
-        removePostIndicator(el);
-      }
-      markedPosts.clear();
       spoilerCount = 0;
       updateCount();
     }
 
     function toggleIndicators(show: boolean) {
-      const posts = document.querySelectorAll<HTMLElement>('[data-tsr-indicator="true"]');
-      for (const el of posts) {
+      const spoilers = document.querySelectorAll<HTMLElement>(
+        'div[role="button"][data-spoiler-revealed="true"]'
+      );
+      for (const el of spoilers) {
         if (show) {
-          el.classList.add('tsr-post-spoiler');
+          applyHighlight(el);
         } else {
-          el.classList.remove('tsr-post-spoiler');
+          removeHighlight(el);
+          el.style.setProperty('background-color', 'transparent', 'important');
         }
       }
     }
@@ -205,33 +166,10 @@ export default defineContentScript({
         div[role="button"] > div.xt0psk2 {
           opacity: 1 !important;
         }
-        div[role="button"]:has(> div.xt0psk2) {
-          background-color: transparent !important;
-        }
 
-        /* Post-level spoiler indicator: subtle left accent bar */
-        .tsr-post-spoiler {
-          border-left: 3px solid rgba(124, 58, 237, 0.5) !important;
-        }
-
-        /* Small "eye" indicator near the post actions */
-        .tsr-post-spoiler::after {
-          content: '';
-          display: block;
-          width: 14px;
-          height: 14px;
-          margin: 2px 0 0 0;
-          opacity: 0.35;
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M8 3.5C4.5 3.5 1.5 8 1.5 8s3 4.5 6.5 4.5S14.5 8 14.5 8s-3-4.5-6.5-4.5z' stroke='%237C3AED' stroke-width='1.2' fill='none'/%3E%3Ccircle cx='8' cy='8' r='2' stroke='%237C3AED' stroke-width='1.2' fill='none'/%3E%3C/svg%3E");
-          background-size: contain;
-          background-repeat: no-repeat;
-          pointer-events: none;
-          animation: tsr-fade-in 0.4s ease;
-        }
-
-        @keyframes tsr-fade-in {
-          from { opacity: 0; }
-          to { opacity: 0.35; }
+        /* Hover effect: intensify highlight on revealed spoilers */
+        div[role="button"].tsr-spoiler-highlight:hover {
+          background-color: rgba(250, 204, 21, 0.35) !important;
         }
       `;
       document.head.appendChild(styleEl);
@@ -250,7 +188,7 @@ export default defineContentScript({
         const enabled = changes[STORAGE_KEY].newValue !== false;
         if (enabled) {
           injectRevealCSS();
-          revealAllSpoilers();
+          await revealAllSpoilers();
         } else {
           removeRevealCSS();
           hideAllSpoilers();
@@ -266,12 +204,12 @@ export default defineContentScript({
     const enabled = await isEnabled();
     if (enabled) {
       injectRevealCSS();
-      revealAllSpoilers();
+      await revealAllSpoilers();
     }
 
     const observer = new MutationObserver(async () => {
       if (await isEnabled()) {
-        revealAllSpoilers();
+        await revealAllSpoilers();
       }
     });
 

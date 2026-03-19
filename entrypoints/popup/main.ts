@@ -52,8 +52,8 @@ app.innerHTML = `
 
       <div class="toggle-row">
         <div class="toggle-info">
-          <span class="toggle-label">Spoiler indicator</span>
-          <span class="toggle-desc">Mark posts that had spoilers</span>
+          <span class="toggle-label">Highlight spoilers</span>
+          <span class="toggle-desc">Tint revealed words so you spot the punchline</span>
         </div>
         <label class="switch">
           <input type="checkbox" id="indicator-toggle" checked />
