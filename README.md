@@ -38,6 +38,12 @@ Posts that contained spoilers are subtly marked with a thin purple left border a
 
 ## Install
 
+### Chrome Web Store
+
+[![Chrome Web Store](https://img.shields.io/chrome-web-store/v/jkmaeikfgcooepjbenmhamifkhmkdkgj)](https://chromewebstore.google.com/detail/threads-spoiler-revealer/jkmaeikfgcooepjbenmhamifkhmkdkgj)
+
+Install directly from the [Chrome Web Store](https://chromewebstore.google.com/detail/threads-spoiler-revealer/jkmaeikfgcooepjbenmhamifkhmkdkgj).
+
 ### From source (development)
 
 ```bash
